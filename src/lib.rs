@@ -1,6 +1,6 @@
 use std::{borrow::Cow, error::Error};
 
-use crate::types::StopPoint;
+use crate::types::{Prediction, StopPoint};
 
 pub mod types;
 
@@ -41,6 +41,15 @@ impl Client {
     ) -> Result<StopPoint, Box<dyn Error>> {
         let code = code.into();
         let url = format!("https://api.tfl.gov.uk/StopPoint/Sms/{code}");
+        self.get_json(&url).await
+    }
+
+    pub async fn arrivals<T: Into<Cow<'static, str>>>(
+        &self,
+        id: T,
+    ) -> Result<Vec<Prediction>, Box<dyn Error>> {
+        let id = id.into();
+        let url = format!("https://api.tfl.gov.uk/StopPoint/{id}/Arrivals");
         self.get_json(&url).await
     }
 }

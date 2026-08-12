@@ -3,10 +3,17 @@ name = "tflers"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = []
+chrono = ["dep:chrono"]
+time = ["dep:time"]
+
 [dependencies]
 reqwest = { version = "0.13.4", features = ["json"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+chrono = { version = "0.4.40", optional = true, features = ["serde"] }
+time = { version = "0.3.37", optional = true, features = ["serde", "parsing", "formatting"] }
 
 [dev-dependencies]
 dotenvy = "0.15.7"

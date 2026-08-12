@@ -1,5 +1,17 @@
 use serde::{Deserialize, Serialize};
 
+#[cfg(all(feature = "chrono", not(feature = "time")))]
+pub type DateTime = chrono::DateTime<chrono::Utc>;
+
+#[cfg(all(feature = "time", not(feature = "chrono")))]
+pub type DateTime = time::OffsetDateTime;
+
+#[cfg(all(not(feature = "chrono"), not(feature = "time")))]
+pub type DateTime = String;
+
+#[cfg(all(feature = "chrono", feature = "time"))]
+pub type DateTime = chrono::DateTime<chrono::Utc>;
+
 /// Transport for London (TfL) `StopPoint` entity definition (`Tfl.Api.Presentation.Entities.StopPoint`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -57,7 +69,7 @@ pub struct AdditionalProperties {
     pub key: Option<String>,
     pub source_system_key: Option<String>,
     pub value: Option<String>,
-    pub modified: Option<String>,
+    pub modified: Option<DateTime>,
 }
 
 pub type AdditionalProperty = AdditionalProperties;
@@ -186,6 +198,55 @@ pub struct StopPointsResponse {
     pub stop_points: Vec<StopPoint>,
 }
 
+/// Transport for London (TfL) `Prediction` entity definition (`Tfl.Api.Presentation.Entities.Prediction`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Prediction {
+    #[serde(rename = "$type", default, skip_serializing_if = "Option::is_none")]
+    pub tfl_type: Option<String>,
+
+    pub id: Option<String>,
+    pub operation_type: Option<i32>,
+    pub vehicle_id: Option<String>,
+    pub naptan_id: Option<String>,
+    pub station_name: Option<String>,
+    pub line_id: Option<String>,
+    pub line_name: Option<String>,
+    pub platform_name: Option<String>,
+    pub direction: Option<String>,
+    pub bearing: Option<String>,
+    pub destination_naptan_id: Option<String>,
+    pub destination_name: Option<String>,
+    pub timestamp: Option<DateTime>,
+    pub time_to_station: Option<i32>,
+    pub current_location: Option<String>,
+    pub towards: Option<String>,
+    pub expected_arrival: Option<DateTime>,
+    pub time_to_live: Option<DateTime>,
+    pub mode_name: Option<String>,
+    pub timing: Option<PredictionTiming>,
+    pub trip_id: Option<String>,
+    pub base_version: Option<String>,
+}
+
+/// Alias for [`Prediction`].
+pub type Arrival = Prediction;
+
+/// Transport for London (TfL) `PredictionTiming` entity definition (`Tfl.Api.Presentation.Entities.PredictionTiming`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PredictionTiming {
+    #[serde(rename = "$type", default, skip_serializing_if = "Option::is_none")]
+    pub tfl_type: Option<String>,
+
+    pub countdown_server_adjustment: Option<String>,
+    pub source: Option<DateTime>,
+    pub insert: Option<DateTime>,
+    pub read: Option<DateTime>,
+    pub sent: Option<DateTime>,
+    pub received: Option<DateTime>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -253,5 +314,29 @@ mod tests {
         assert_eq!(sp.lines[0].identifier_type.as_deref(), Some("Line"));
         assert_eq!(sp.children.len(), 1);
         assert_eq!(sp.children[0].id.as_deref(), Some("940GZZLUKSX"));
+    }
+
+    #[test]
+    fn test_deserialize_prediction() {
+        let json = r#"{
+            "$type": "Tfl.Api.Presentation.Entities.Prediction, Tfl.Api.Presentation.Entities",
+            "id": "611043845",
+            "operationType": 1,
+            "vehicleId": "203",
+            "naptanId": "940GZZLUKSX",
+            "stationName": "King's Cross St. Pancras Underground Station",
+            "lineId": "circle",
+            "lineName": "Circle",
+            "platformName": "Eastbound - Platform 2",
+            "direction": "outbound",
+            "timeToStation": 469,
+            "modeName": "tube"
+        }"#;
+
+        let pred: Prediction = serde_json::from_str(json).unwrap();
+        assert_eq!(pred.id.as_deref(), Some("611043845"));
+        assert_eq!(pred.line_id.as_deref(), Some("circle"));
+        assert_eq!(pred.time_to_station, Some(469));
+        assert_eq!(pred.mode_name.as_deref(), Some("tube"));
     }
 }
